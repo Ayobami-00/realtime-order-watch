@@ -5,7 +5,7 @@ COPY services/order-processing-service/ .
 RUN go build -o main services/order-processing-service/cmd/main.go
 
 # Run stage
-FROM alpine:3.22
+FROM alpine:3.19
 WORKDIR /app
 COPY --from=builder /app/main .
 
