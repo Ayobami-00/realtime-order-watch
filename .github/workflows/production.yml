@@ -1,0 +1,124 @@
+name: PRODUCTION DEPLOY ORDER PROCESSING SERVICE
+on:
+  push:
+    branches:
+    - main
+
+  workflow_dispatch:
+    inputs:
+      AZURE_CLIENT_ID:
+        description: 'Azure Client ID'
+        required: true
+      AZURE_TENANT_ID:
+        description: 'Azure Tenant ID'
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        description: 'Azure Subscription ID'
+        required: true
+      AKS_RESOURCE_GROUP:
+        description: 'AKS Resource Group'
+        required: true
+      AKS_CLUSTER_NAME:
+        description: 'AKS Cluster Name'
+        required: true
+      ACR_REGISTRY:
+        description: 'ACR Registry Name'
+        required: true
+      ACR_REPOSITORY:
+        description: 'ACR Repository'
+        required: true
+      REPLICAS:
+        description: 'Number of replicas'
+        required: true
+        
+
+env:
+  ACR_REPOSITORY: ${{ inputs.ACR_REPOSITORY }}
+  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_NAME: order-processing-service
+
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read    # This is required for actions/checkout
+
+jobs:
+  build-and-push-order-processing-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ inputs.AZURE_CLIENT_ID }}
+          tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+          subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set Git Commit SHA
+        run: |
+          echo "GIT_COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      - name: Docker build and push ACR
+        run: |
+          az acr login --name ${{ inputs.ACR_REGISTRY }}
+          docker build --build-arg VECTORPATH_GITHUB_PAT=${{ secrets.VECTORPATH_GITHUB_PAT }} -t ${{ inputs.ACR_REGISTRY }}/${{ inputs.ACR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker push ${{ inputs.ACR_REGISTRY }}/${{ inputs.ACR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Install helm
+        run: |
+          curl -LO https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz
+          tar xfz helm-v3.12.3-linux-amd64.tar.gz
+          sudo mv linux-amd64/helm /usr/local/bin/
+
+      - name: Deploy with Helm
+        env:
+          AKS_RESOURCE_GROUP: ${{ inputs.AKS_RESOURCE_GROUP }}
+          AKS_CLUSTER_NAME: ${{ inputs.AKS_CLUSTER_NAME }}
+          ACR_REGISTRY: ${{ inputs.ACR_REGISTRY }}
+          ACR_REPOSITORY: ${{ inputs.ACR_REPOSITORY }}
+        run: |
+          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing --admin
+          cd services/order-processing-service/deploy/aks/helm-chart
+          helm upgrade --install ${{ env.IMAGE_NAME }} . --set appName=${{ env.IMAGE_NAME }} --set deployment.image.repository=$ACR_REGISTRY/$ACR_REPOSITORY/${{ env.IMAGE_NAME }} --set deployment.image.tag=${{ env.IMAGE_TAG }} --set deployment.replicaCount=${{ inputs.REPLICAS }}
+
+          
+
+    build-and-push-order-mock-generator-service:
+      needs: [build-and-push-order-processing-service]
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ inputs.AZURE_CLIENT_ID }}
+          tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+          subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set Git Commit SHA
+        run: |
+          echo "GIT_COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      - name: Docker build and push ACR
+        run: |
+          az acr login --name ${{ inputs.ACR_REGISTRY }}
+          docker build --build-arg VECTORPATH_GITHUB_PAT=${{ secrets.VECTORPATH_GITHUB_PAT }} -t ${{ inputs.ACR_REGISTRY }}/${{ inputs.ACR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker push ${{ inputs.ACR_REGISTRY }}/${{ inputs.ACR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Install helm
+        run: |
+          curl -LO https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz
+          tar xfz helm-v3.12.3-linux-amd64.tar.gz
+          sudo mv linux-amd64/helm /usr/local/bin/
+
+      - name: Deploy with Helm
+        env:
+          AKS_RESOURCE_GROUP: ${{ inputs.AKS_RESOURCE_GROUP }}
+          AKS_CLUSTER_NAME: ${{ inputs.AKS_CLUSTER_NAME }}
+          ACR_REGISTRY: ${{ inputs.ACR_REGISTRY }}
+          ACR_REPOSITORY: ${{ inputs.ACR_REPOSITORY }}
+        run: |
+          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing --admin
+          cd services/order-mock-generator-service/deploy/aks/helm-chart
+          helm upgrade --install ${{ env.IMAGE_NAME }} . --set appName=${{ env.IMAGE_NAME }} --set deployment.image.repository=$ACR_REGISTRY/$ACR_REPOSITORY/${{ env.IMAGE_NAME }} --set deployment.image.tag=${{ env.IMAGE_TAG }} --set deployment.replicaCount=${{ inputs.REPLICAS }}

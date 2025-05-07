@@ -8,6 +8,7 @@ STORAGE_ACCOUNT_NAME = $(COMPANY_NAME)$(ENVIRONMENT)storage
 
 STORAGE_CONTAINER_NAME = tfstatefiles
 SUBSCRIPTION_ID = ""
+GITHUB_TOKEN = ""
 
 AKS_RESOURCE_GROUP_NAME = $(COMPANY_NAME)-$(ENVIRONMENT)-aks-resource-group
 
@@ -39,6 +40,7 @@ create-or-update-deployment:
 		-var="storage_container_name=$(STORAGE_CONTAINER_NAME)" \
 		-var="deployment_stage=$(DEPLOYMENT_STAGE)" \
 		-var="aks_cluster_name=$(AKS_CLUSTER_NAME)" \
+		-var="github_token=$(GITHUB_TOKEN)" \
 		-lock=false -auto-approve 
  
 destroy-deployment:
@@ -52,6 +54,7 @@ destroy-deployment:
 		-var="storage_container_name=$(STORAGE_CONTAINER_NAME)" \
 		-var="deployment_stage=$(DEPLOYMENT_STAGE)" \
 		-var="aks_cluster_name=$(AKS_CLUSTER_NAME)" \
+		-var="github_token=$(GITHUB_TOKEN)" \
 		-auto-approve
 
 

@@ -66,3 +66,8 @@ variable "deployment_stage" {
 }
 
 
+variable "github_token" {
+  description = "GitHub Token"
+  type        = string
+  default     = ""
+}

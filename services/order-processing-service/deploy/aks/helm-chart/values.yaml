@@ -1,0 +1,39 @@
+# Default values for helm-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+appName: ""
+
+deployment:
+
+  replicaCount: 1
+  
+  image:
+    repository: ""
+    pullPolicy: Always
+    tag: ""
+
+  serviceType: ClusterIP
+
+  containers:
+    resources:
+      requests:
+        memory: "500Mi"
+        cpu: "350m"
+      limits:
+        memory: "500Mi"
+        cpu: "350m"
+
+  spec:
+    nodeSelector:
+      node_type: ""
+      node_app: ""
+
+namespace: ""
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
