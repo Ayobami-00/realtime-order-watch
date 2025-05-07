@@ -1,9 +1,5 @@
 name: PRODUCTION DEPLOY ORDER PROCESSING SERVICE
 on:
-  push:
-    branches:
-    - main
-
   workflow_dispatch:
     inputs:
       AZURE_CLIENT_ID:

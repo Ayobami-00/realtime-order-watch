@@ -190,6 +190,17 @@ module "github_actions_identity" {
   aks_location        = local.aks_location
 }
 
+module "federated_identity_credential_realtime_order_watch_services" { 
+  source = "../../core/modules/aks/identity/federated_identity_credential"
+
+  name                = "github-actions-realtime-order-watch-services"
+  resource_group_name = local.aks_resource_group_name
+  issuer              = "https://token.actions.githubusercontent.com"
+  subject             = "repo:Ayobami-00/realtime-order-watch:ref:refs/heads/main"
+  parent_id           = module.github_actions_identity.user_assigned_identity_id
+
+}
+
 module "role_assignment_github_actions_acr_pull" {
   source = "../../core/modules/aks/identity/roles/role_assignment"
 
