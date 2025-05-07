@@ -272,8 +272,8 @@ module "role_assignment_aks_cluster" {
 
 data "azurerm_subscription" "current" {}
 
-data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
-  count               = local.deployment_stage == 1 ? 1 : 0
-  name                = "${local.company_name}-${local.environment}-github-actions-identity"
-  resource_group_name = local.aks_resource_group_name
-}
+# data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
+#   count               = local.deployment_stage == 1 ? 1 : 0
+#   name                = "${local.company_name}-${local.environment}-github-actions-identity"
+#   resource_group_name = local.aks_resource_group_name
+# }

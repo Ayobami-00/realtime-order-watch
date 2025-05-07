@@ -1,0 +1,29 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+
+# Azure credentials
+.azure/
+
+# Local .terraform directories
+**/.terraform/*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude sensitive variables files
+**/secrets.tfvars
+**/terraform.tfvars
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.env
