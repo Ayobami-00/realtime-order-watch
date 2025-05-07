@@ -14,9 +14,6 @@ spec:
       labels:
         app: {{ include "helm-chart.appName" . }}
     spec:
-      nodeSelector:
-        node_type: {{ .Values.deployment.spec.nodeSelector.node_type }}
-        node_app: {{ .Values.deployment.spec.nodeSelector.node_app }}
       containers:
       - name: {{ include "helm-chart.appName" . }}
         image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}"
