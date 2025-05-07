@@ -7,7 +7,7 @@ import (
 
 	"github.com/Ayobami-00/realtime-order-watch/order-processing-service/bootstrap"
 	"github.com/Ayobami-00/realtime-order-watch/order-processing-service/gapi"
-	"github.com/Ayobami-00/realtime-order-watch/order-processing-service/pb"
+	orderspb "github.com/Ayobami-00/realtime-order-watch/order-processing-service/pb"
 	"github.com/Ayobami-00/realtime-order-watch/order-processing-service/utils/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -21,7 +21,7 @@ func main() {
 
 	timeout := time.Duration(env.ContextTimeout) * time.Second
 
-	server, err := gapi.NewServer(env, *app.Db, timeout)
+	server, err := gapi.NewServer(*env, app.Db, timeout)
 	if err != nil {
 		log.Fatal("Cannot create server :", err)
 	}
@@ -30,7 +30,7 @@ func main() {
 
 	grpcServer := grpc.NewServer(gprcLogger)
 
-	pb.RegisterAuthServiceServer(grpcServer, server)
+	orderspb.RegisterOrderServiceServer(grpcServer, server)
 
 	reflection.Register(grpcServer)
 

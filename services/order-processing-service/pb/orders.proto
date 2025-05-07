@@ -5,7 +5,7 @@ package orders; // Protobuf package name
 // The go_package option tells protoc where to output the Go files
 // and what the Go package name should be.
 // Format: "module_path/path/to/directory_for_pb_files;go_package_name"
-option go_package = "github.com/Ayobami-00/realtime-order-watch/services/order-processing-service/pb;orderspb";
+option go_package = "github.com/Ayobami-00/realtime-order-watch/order-processing-service/pb;orderspb";
 
 import "google/protobuf/timestamp.proto";
 

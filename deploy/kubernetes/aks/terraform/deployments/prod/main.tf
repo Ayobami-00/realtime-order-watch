@@ -112,7 +112,7 @@ module "aks_cluster" {
   dns_prefix                        = "${local.company_name}-${local.environment}-aks-cluster"
   node_resource_group_name          = "${local.company_name}-${local.environment}-aks-cluster-rg"
   default_node_pool_name            = "${local.company_name}apl"
-  default_node_pool_vm_size         = "Standard_L8s_v2"
+  default_node_pool_vm_size         = "Standard_D4s_v3"
   default_node_pool_min_count       = 1
   default_node_pool_max_count       = 3
   default_node_pool_os_disk_size_gb = 30

@@ -648,7 +648,7 @@ const file_orders_proto_rawDesc = "" +
 	"\bGetOrder\x12\x17.orders.GetOrderRequest\x1a\x18.orders.GetOrderResponse\x12C\n" +
 	"\n" +
 	"ListOrders\x12\x19.orders.ListOrdersRequest\x1a\x1a.orders.ListOrdersResponse\x12X\n" +
-	"\x11UpdateOrderStatus\x12 .orders.UpdateOrderStatusRequest\x1a!.orders.UpdateOrderStatusResponseBZZXgithub.com/Ayobami-00/realtime-order-watch/services/order-processing-service/pb;orderspbb\x06proto3"
+	"\x11UpdateOrderStatus\x12 .orders.UpdateOrderStatusRequest\x1a!.orders.UpdateOrderStatusResponseBQZOgithub.com/Ayobami-00/realtime-order-watch/order-processing-service/pb;orderspbb\x06proto3"
 
 var (
 	file_orders_proto_rawDescOnce sync.Once
