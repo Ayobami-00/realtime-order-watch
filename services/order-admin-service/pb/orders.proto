@@ -5,7 +5,7 @@ package orders; // Protobuf package name
 // The go_package option tells protoc where to output the Go files
 // and what the Go package name should be.
 // Format: "module_path/path/to/directory_for_pb_files;go_package_name"
-option go_package = "github.com/Ayobami-00/realtime-order-watch/order-processing-service/pb;orderspb";
+option go_package = "github.com/Ayobami-00/realtime-order-watch/order-admin-service/pb;orderspb"; // Adjusted for order-admin-service
 
 import "google/protobuf/timestamp.proto";
 
@@ -26,7 +26,7 @@ service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
   rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
-  rpc StreamOrders(StreamOrdersRequest) returns (stream Order); // New RPC for streaming orders
+  rpc StreamOrders(StreamOrdersRequest) returns (stream Order); // RPC for streaming orders
   // rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse); // Placeholder for future
 }
 

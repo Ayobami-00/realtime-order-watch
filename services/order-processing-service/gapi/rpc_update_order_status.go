@@ -104,16 +104,20 @@ func (s *Server) UpdateOrderStatus(ctx context.Context, req *orderspb.UpdateOrde
 
 	log.Printf("Order status updated successfully for ID: %s to %s", finalOrderState.ID.String(), finalOrderState.Status.String)
 
+	// Broadcast the updated order
+	updatedOrderForBroadcast := &orderspb.Order{
+		OrderId:     finalOrderState.ID.String(),
+		CustomerId:  finalOrderState.CustomerID,
+		Amount:      finalOrderState.Amount,
+		Description: finalOrderState.Description.String,
+		Status:      finalOrderState.Status.String,
+		CreatedAt:   timestamppb.New(finalOrderState.CreatedAt.Time),
+		UpdatedAt:   timestamppb.New(finalOrderState.UpdatedAt.Time),
+	}
+	s.broadcastOrder(updatedOrderForBroadcast)
+
 	// --- Response Assembly ---
 	return &orderspb.UpdateOrderStatusResponse{
-		Order: &orderspb.Order{
-			OrderId:     finalOrderState.ID.String(),
-			CustomerId:  finalOrderState.CustomerID,
-			Amount:      finalOrderState.Amount,
-			Description: finalOrderState.Description.String,
-			Status:      finalOrderState.Status.String,
-			CreatedAt:   timestamppb.New(finalOrderState.CreatedAt.Time),
-			UpdatedAt:   timestamppb.New(finalOrderState.UpdatedAt.Time),
-		},
+		Order: updatedOrderForBroadcast, // Use the same object
 	}, nil
 }

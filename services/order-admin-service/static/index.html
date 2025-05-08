@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REALTIME ORDER WATCH</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; margin: 20px; background-color: #f0f2f5; color: #1c1e21; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1877f2; margin-bottom: 30px; font-weight: 600; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccd0d5;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 0.95em;
+        }
+        th {
+            background-color: #e9ecef;
+            color: #4b4f56;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        tr:nth-child(even) { background-color: #f7f8fa; }
+        tr:hover { background-color: #e0e8f0; }
+        .status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+        .status-CREATED { background-color: #28a745; /* Green */ }
+        .status-PROCESSING { background-color: #ffc107; /* Yellow */ color: #212529; }
+        .status-SHIPPED { background-color: #17a2b8; /* Teal */ }
+        .status-DELIVERED { background-color: #007bff; /* Blue */ }
+        .status-CANCELLED { background-color: #dc3545; /* Red */ }
+        .status-FAILED { background-color: #6c757d; /* Gray */ }
+        .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: #606770; }
+        .connection-status { text-align: center; margin-bottom: 15px; padding: 10px; border-radius: 4px; font-weight: 500; }
+        .status-connected { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-disconnected { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #noOrdersMessage { text-align: center; color: #606770; font-style: italic; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>REALTIME ORDER WATCH</h1>
+        <div id="connectionStatus" class="connection-status status-disconnected">Connecting to order stream... <div class="loader"></div></div>
+        <table id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer ID</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                <!-- Orders will be dynamically inserted here -->
+            </tbody>
+        </table>
+        <div id="noOrdersMessage" style="display: none;">No orders to display yet. Waiting for new orders...</div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 Realtime Order Watch. Powered by Cascade AI.</p>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -66,16 +66,20 @@ func (s *Server) CreateOrder(ctx context.Context, req *orderspb.CreateOrderReque
 	span.SetAttributes(attribute.String("db.order_id", dbOrder.ID.String()))
 	log.Printf("Order created successfully with ID: %s", dbOrder.ID.String())
 
+	// Broadcast the newly created order
+	createdOrderForBroadcast := &orderspb.Order{
+		OrderId:     dbOrder.ID.String(),
+		CustomerId:  dbOrder.CustomerID,
+		Amount:      dbOrder.Amount,
+		Description: dbOrder.Description.String,
+		Status:      dbOrder.Status.String,
+		CreatedAt:   timestamppb.New(dbOrder.CreatedAt.Time),
+		UpdatedAt:   timestamppb.New(dbOrder.UpdatedAt.Time),
+	}
+	s.broadcastOrder(createdOrderForBroadcast)
+
 	// --- Response ---
 	return &orderspb.CreateOrderResponse{
-		Order: &orderspb.Order{
-			OrderId:     dbOrder.ID.String(),
-			CustomerId:  dbOrder.CustomerID,
-			Amount:      dbOrder.Amount,
-			Description: dbOrder.Description.String,
-			Status:      dbOrder.Status.String,
-			CreatedAt:   timestamppb.New(dbOrder.CreatedAt.Time),
-			UpdatedAt:   timestamppb.New(dbOrder.UpdatedAt.Time),
-		},
+		Order: createdOrderForBroadcast, // Use the same object
 	}, nil
 }
