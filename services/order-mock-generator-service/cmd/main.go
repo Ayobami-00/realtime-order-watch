@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultRequestFrequencyPerSecond = 50
+	defaultRequestFrequencyPerSecond = 10
 	invalidDataPercentage            = 15 // Percentage of requests to send with invalid data (0-100)
 )
 
