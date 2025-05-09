@@ -16,6 +16,14 @@ locals {
   deployment_stage       = var.deployment_stage
   cluster_issuer_name    = "letsencrypt"
   github_token           = var.github_token
+  key_vault_name         = "${local.company_name}-${local.environment}-kv"
+  key_vault_resource_group_name = local.aks_resource_group_name
+
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  database_subnets = ["10.0.151.0/24", "10.0.152.0/24"]
+
+  aks_cluster_name = "${local.company_name}-${local.environment}-aks-cluster"
 }
 
 ## ALREADY CREATED FROM PREVIOUS STEPS
@@ -36,9 +44,9 @@ module "vnet" {
 
   # Optional - will use defaults if not specified
   vnet_cidr_block  = "10.0.0.0/16"
-  public_subnets   = ["10.0.101.0/24", "10.0.102.0/24"]
-  private_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
-  database_subnets = ["10.0.151.0/24", "10.0.152.0/24"]
+  public_subnets   = local.public_subnets
+  private_subnets  = local.private_subnets
+  database_subnets = local.database_subnets
 
   enable_nat_gateway = true
   single_nat_gateway = true
@@ -107,7 +115,7 @@ module "aks_container_registry" {
 module "aks_cluster" {
   source = "../../core/modules/aks/compute/aks_cluster"
 
-  name                              = "${local.company_name}-${local.environment}-aks-cluster"
+  name                              = local.aks_cluster_name
   aks_location                      = local.aks_location
   resource_group_name               = local.aks_resource_group_name
   dns_prefix                        = "${local.company_name}-${local.environment}-aks-cluster"
@@ -284,7 +292,7 @@ module "role_assignment_aks_cluster" {
 
 data "azurerm_subscription" "current" {}
 
-resource "null_resource" "trigger_vectorpath_admin_api_service_github_actions_deployment" {
+resource "null_resource" "trigger_realtime_order_watch_services_github_actions_deployment" { 
   triggers = {
     always_run = "${timestamp()}" # This ensures the resource is triggered on every apply
   }
@@ -313,8 +321,78 @@ resource "null_resource" "trigger_vectorpath_admin_api_service_github_actions_de
 }
 
 
-# data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
-#   count               = local.deployment_stage == 1 ? 1 : 0
-#   name                = "${local.company_name}-${local.environment}-github-actions-identity"
-#   resource_group_name = local.aks_resource_group_name
-# }
+data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
+  count               = local.deployment_stage == 1 ? 1 : 0
+  name                = "${local.company_name}-${local.environment}-github-actions-identity"
+  resource_group_name = local.aks_resource_group_name
+}
+
+
+### NEXT STAGE 
+
+#### MONITORING STACK 
+module "thanos_storage_account" {
+  count               = local.deployment_stage == 1 ? 1 : 0
+  source                        = "../../core/modules/aks/storage/storage_account"
+  storage_account_name          = "${lower(local.company_name)}${local.environment}thanos"
+  resource_group_name           = local.aks_resource_group_name
+  location                      = local.aks_location
+  account_tier                  = "Standard"
+  account_replication_type      = "LRS"
+  
+  # Set to private mode with security settings
+  access_mode                   = "private"
+  public_network_access_enabled = false
+  default_action               = "Deny"
+  virtual_network_subnet_ids    = module.vnet.private_subnet_ids
+  bypass                       = ["AzureServices"]
+}
+
+module "thanos_storage_container" {
+  count               = local.deployment_stage == 1 ? 1 : 0
+  source                  = "../../core/modules/aks/storage/storage_container"
+  storage_account_id      = module.thanos_storage_account[0].storage_account_id
+  container_name          = "thanosfiles"
+}
+
+module "thanos" {
+  count               = local.deployment_stage == 1 ? 1 : 0
+  source                 = "../../core/modules/aks/monitoring/thanos"
+  kubernetes_namespace   = "monitoring"
+  
+  storage_account_name   = module.thanos_storage_account[0].storage_account_name
+  storage_container_name = module.thanos_storage_container[0].storage_container_name
+  storage_account_key    = module.thanos_storage_account[0].primary_access_key
+
+  # Customize components as needed (examples)
+  query_replicas         = 1
+  storegateway_replicas  = 1
+  compactor_enabled      = true
+  compactor_retention_raw = "60d"
+
+  additional_labels = {
+    environment = local.environment
+    cluster     = local.aks_cluster_name 
+  }
+  
+  resources = { # Override default resources if needed
+    query = {
+      requests = { cpu = "500m", memory = "1Gi" }
+      limits   = { cpu = "2", memory = "2Gi" }
+    }
+    storegateway = {
+      requests = { cpu = "500m", memory = "1Gi" }
+      limits   = { cpu = "2", memory = "2Gi" }
+    }
+    compactor = {
+      requests = { cpu = "500m", memory = "1Gi" }
+      limits   = { cpu = "1", memory = "2Gi" }
+    }
+  }
+
+  depends_on = [
+    module.thanos_storage_account,
+    module.thanos_storage_container,
+    module.aks_cluster
+  ]
+}
