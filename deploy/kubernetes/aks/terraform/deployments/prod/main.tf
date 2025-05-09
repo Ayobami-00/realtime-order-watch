@@ -292,33 +292,33 @@ module "role_assignment_aks_cluster" {
 
 data "azurerm_subscription" "current" {}
 
-resource "null_resource" "trigger_realtime_order_watch_services_github_actions_deployment" { 
-  triggers = {
-    always_run = "${timestamp()}" # This ensures the resource is triggered on every apply
-  }
-  provisioner "local-exec" {
-    command = <<-EOT
-      curl --location 'https://api.github.com/repos/Ayobami-00/realtime-order-watch/actions/workflows/production.yml/dispatches' \
-      --header 'Accept: application/vnd.github+json' \
-      --header 'Authorization: Bearer ${local.github_token}' \
-      --header 'X-GitHub-Api-Version: 2022-11-28' \
-      --header 'Content-Type: application/json' \
-      --data '{
-          "ref":"main",
-          "inputs":{
-            "AZURE_CLIENT_ID":"${module.github_actions_identity.user_assigned_identity_client_id}", 
-            "AZURE_TENANT_ID":"${data.azurerm_subscription.current.tenant_id}", 
-            "AZURE_SUBSCRIPTION_ID": "${data.azurerm_subscription.current.subscription_id}",  
-            "AKS_RESOURCE_GROUP": "${local.aks_resource_group_name}",
-            "AKS_CLUSTER_NAME": "${module.aks_cluster.aks_cluster_name}",
-            "ACR_REGISTRY":"${module.aks_container_registry.acr_login_server}",
-            "ACR_REPOSITORY": "realtime-order-watch-images", 
-            "REPLICAS": "1"
-          }
-        }' 
-    EOT
-  }
-}
+# resource "null_resource" "trigger_realtime_order_watch_services_github_actions_deployment" { 
+#   triggers = {
+#     always_run = "${timestamp()}" # This ensures the resource is triggered on every apply
+#   }
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       curl --location 'https://api.github.com/repos/Ayobami-00/realtime-order-watch/actions/workflows/production.yml/dispatches' \
+#       --header 'Accept: application/vnd.github+json' \
+#       --header 'Authorization: Bearer ${local.github_token}' \
+#       --header 'X-GitHub-Api-Version: 2022-11-28' \
+#       --header 'Content-Type: application/json' \
+#       --data '{
+#           "ref":"main",
+#           "inputs":{
+#             "AZURE_CLIENT_ID":"${module.github_actions_identity.user_assigned_identity_client_id}", 
+#             "AZURE_TENANT_ID":"${data.azurerm_subscription.current.tenant_id}", 
+#             "AZURE_SUBSCRIPTION_ID": "${data.azurerm_subscription.current.subscription_id}",  
+#             "AKS_RESOURCE_GROUP": "${local.aks_resource_group_name}",
+#             "AKS_CLUSTER_NAME": "${module.aks_cluster.aks_cluster_name}",
+#             "ACR_REGISTRY":"${module.aks_container_registry.acr_login_server}",
+#             "ACR_REPOSITORY": "realtime-order-watch-images", 
+#             "REPLICAS": "1"
+#           }
+#         }' 
+#     EOT
+#   }
+# }
 
 
 data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
