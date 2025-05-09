@@ -1,57 +1,64 @@
 variable "kubernetes_namespace" {
-  description = "Kubernetes namespace to deploy Thanos components."
+  description = "The Kubernetes namespace where Thanos will be deployed."
   type        = string
   default     = "monitoring"
 }
 
 variable "release_name" {
-  description = "Helm release name for Thanos."
+  description = "The Helm release name for Thanos."
   type        = string
   default     = "thanos"
 }
 
 variable "helm_chart_repository" {
-  description = "Repository URL for the Thanos Helm chart."
+  description = "The repository URL for the Thanos Helm chart."
   type        = string
   default     = "https://charts.bitnami.com/bitnami"
 }
 
 variable "helm_chart_name" {
-  description = "Name of the Thanos Helm chart."
+  description = "The name of the Thanos Helm chart."
   type        = string
   default     = "thanos"
 }
 
 variable "helm_chart_version" {
-  description = "Version of the Thanos Helm chart. Check Bitnami for the latest suitable version."
+  description = "The version of the Thanos Helm chart."
   type        = string
-  default     = "12.17.0" # Example version, corresponds to Thanos app v0.34.0
+  default     = "12.18.0" # Check for the latest stable version compatible with your needs
 }
 
 variable "create_namespace" {
-  description = "Whether the Helm chart should create the Kubernetes namespace if it doesn't exist."
+  description = "Whether to create the Kubernetes namespace if it doesn't exist."
   type        = bool
   default     = true
 }
 
 # --- Object Storage Configuration ---
 variable "storage_account_name" {
-  description = "Azure Storage Account name for Thanos long-term storage."
+  description = "The name of the Azure Storage Account."
   type        = string
 }
 
 variable "storage_container_name" {
-  description = "Azure Blob Container name for Thanos."
+  description = "The name of the Azure Blob Storage container."
   type        = string
 }
 
 variable "storage_account_key" {
-  description = "Primary access key for the Azure Storage Account. This is sensitive."
+  description = "The primary access key for the Azure Storage Account. Optional if using Azure AD Workload Identity."
   type        = string
   sensitive   = true
+  default     = null # Make it optional
 }
 
 # --- Thanos Component Configuration ---
+variable "additional_labels" {
+  description = "Additional labels to apply to all Thanos components."
+  type        = map(string)
+  default     = {}
+}
+
 variable "query_enabled" {
   description = "Enable Thanos Query component."
   type        = bool
@@ -65,15 +72,15 @@ variable "query_replicas" {
 }
 
 variable "query_service_type" {
-  description = "Kubernetes service type for Thanos Query."
+  description = "Service type for Thanos Query."
   type        = string
-  default     = "ClusterIP" # Change to LoadBalancer or NodePort if external access is needed directly
+  default     = "ClusterIP"
 }
 
 variable "query_frontend_enabled" {
   description = "Enable Thanos Query Frontend component."
   type        = bool
-  default     = true # Often recommended for better query experience
+  default     = false # Often deployed separately or not needed for basic setups
 }
 
 variable "query_frontend_replicas" {
@@ -101,64 +108,58 @@ variable "compactor_enabled" {
 }
 
 variable "compactor_retention_raw" {
-  description = "Compactor retention for raw metrics."
+  description = "Retention period for raw blocks in compactor."
   type        = string
-  default     = "30d"
+  default     = "30d" # Example: 30 days
 }
 
 variable "compactor_retention_5m" {
-  description = "Compactor retention for 5m downsampled metrics."
+  description = "Retention period for 5m downsampled blocks in compactor."
   type        = string
-  default     = "90d"
+  default     = "90d" # Example: 90 days
 }
 
 variable "compactor_retention_1h" {
-  description = "Compactor retention for 1h downsampled metrics."
+  description = "Retention period for 1h downsampled blocks in compactor."
   type        = string
-  default     = "1y"
+  default     = "365d" # Example: 1 year
 }
 
 variable "ruler_enabled" {
   description = "Enable Thanos Ruler component."
   type        = bool
-  default     = false # Enable if you need global rules/alerting
+  default     = false
 }
 
-variable "additional_labels" {
-  description = "Additional labels to apply to all Thanos components."
-  type        = map(string)
-  default     = {}
-}
+# You might want to add more specific variables for Ruler configuration if enabled
 
 variable "resources" {
-  description = "Default resource requests and limits for Thanos components."
+  description = "Resource requests and limits for Thanos components (query, storegateway, compactor)."
   type = object({
-    query = object({
-      requests = object({ cpu = string, memory = string })
-      limits   = object({ cpu = string, memory = string })
-    })
-    storegateway = object({
-      requests = object({ cpu = string, memory = string })
-      limits   = object({ cpu = string, memory = string })
-    })
-    compactor = object({
-      requests = object({ cpu = string, memory = string })
-      limits   = object({ cpu = string, memory = string })
-    })
-    # Add other components as needed
+    query = optional(object({
+      requests = optional(object({ cpu = optional(string, "250m"), memory = optional(string, "512Mi") }))
+      limits   = optional(object({ cpu = optional(string, "1"), memory = optional(string, "1Gi") }))
+    }), {})
+    storegateway = optional(object({
+      requests = optional(object({ cpu = optional(string, "250m"), memory = optional(string, "512Mi") }))
+      limits   = optional(object({ cpu = optional(string, "1"), memory = optional(string, "1Gi") }))
+    }), {})
+    compactor = optional(object({
+      requests = optional(object({ cpu = optional(string, "250m"), memory = optional(string, "512Mi") }))
+      limits   = optional(object({ cpu = optional(string, "1"), memory = optional(string, "2Gi") })) # Compactor can be memory intensive
+    }), {})
   })
-  default = {
-    query = {
-      requests = { cpu = "250m", memory = "512Mi" }
-      limits   = { cpu = "1", memory = "1Gi" }
-    }
-    storegateway = {
-      requests = { cpu = "250m", memory = "512Mi" }
-      limits   = { cpu = "1", memory = "1Gi" }
-    }
-    compactor = {
-      requests = { cpu = "250m", memory = "512Mi" }
-      limits   = { cpu = "1", memory = "1Gi" }
-    }
-  }
+  default = {}
+}
+
+variable "azure_workload_identity_client_id" {
+  description = "The client ID of the Azure User Assigned Identity to be used for Workload Identity."
+  type        = string
+  default     = null
+}
+
+variable "service_account_annotations" {
+  description = "Annotations to add to the service accounts created for Thanos components."
+  type        = map(string)
+  default     = {}
 }

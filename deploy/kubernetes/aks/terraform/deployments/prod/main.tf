@@ -7,20 +7,20 @@ locals {
     owner       = var.company_name
     environment = local.environment
   }
-  vnet_name              = "${var.company_name}-${local.environment}-vnet"
-  dns_zone_name          = "enfinitylabs.dev"
-  ingress_name           = "ingress"
-  ingress_namespace      = "default"
-  cert_manager_namespace = "default"
-  external_dns_namespace = "external-dns"
-  deployment_stage       = var.deployment_stage
-  cluster_issuer_name    = "letsencrypt"
-  github_token           = var.github_token
-  key_vault_name         = "${local.company_name}-${local.environment}-kv"
+  vnet_name                     = "${var.company_name}-${local.environment}-vnet"
+  dns_zone_name                 = "enfinitylabs.dev"
+  ingress_name                  = "ingress"
+  ingress_namespace             = "default"
+  cert_manager_namespace        = "default"
+  external_dns_namespace        = "external-dns"
+  deployment_stage              = var.deployment_stage
+  cluster_issuer_name           = "letsencrypt"
+  github_token                  = var.github_token
+  key_vault_name                = "${local.company_name}-${local.environment}-kv"
   key_vault_resource_group_name = local.aks_resource_group_name
 
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  private_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets   = ["10.0.101.0/24", "10.0.102.0/24"]
   database_subnets = ["10.0.151.0/24", "10.0.152.0/24"]
 
   aks_cluster_name = "${local.company_name}-${local.environment}-aks-cluster"
@@ -198,7 +198,7 @@ module "github_actions_identity" {
   aks_location        = local.aks_location
 }
 
-module "federated_identity_credential_realtime_order_watch_services" { 
+module "federated_identity_credential_realtime_order_watch_services" {
   source = "../../core/modules/aks/identity/federated_identity_credential"
 
   name                = "github-actions-realtime-order-watch-services"
@@ -292,33 +292,33 @@ module "role_assignment_aks_cluster" {
 
 data "azurerm_subscription" "current" {}
 
-# resource "null_resource" "trigger_realtime_order_watch_services_github_actions_deployment" { 
-#   triggers = {
-#     always_run = "${timestamp()}" # This ensures the resource is triggered on every apply
-#   }
-#   provisioner "local-exec" {
-#     command = <<-EOT
-#       curl --location 'https://api.github.com/repos/Ayobami-00/realtime-order-watch/actions/workflows/production.yml/dispatches' \
-#       --header 'Accept: application/vnd.github+json' \
-#       --header 'Authorization: Bearer ${local.github_token}' \
-#       --header 'X-GitHub-Api-Version: 2022-11-28' \
-#       --header 'Content-Type: application/json' \
-#       --data '{
-#           "ref":"main",
-#           "inputs":{
-#             "AZURE_CLIENT_ID":"${module.github_actions_identity.user_assigned_identity_client_id}", 
-#             "AZURE_TENANT_ID":"${data.azurerm_subscription.current.tenant_id}", 
-#             "AZURE_SUBSCRIPTION_ID": "${data.azurerm_subscription.current.subscription_id}",  
-#             "AKS_RESOURCE_GROUP": "${local.aks_resource_group_name}",
-#             "AKS_CLUSTER_NAME": "${module.aks_cluster.aks_cluster_name}",
-#             "ACR_REGISTRY":"${module.aks_container_registry.acr_login_server}",
-#             "ACR_REPOSITORY": "realtime-order-watch-images", 
-#             "REPLICAS": "1"
-#           }
-#         }' 
-#     EOT
-#   }
-# }
+resource "null_resource" "trigger_realtime_order_watch_services_github_actions_deployment" { 
+  triggers = {
+    always_run = "${timestamp()}" # This ensures the resource is triggered on every apply
+  }
+  provisioner "local-exec" {
+    command = <<-EOT
+      curl --location 'https://api.github.com/repos/Ayobami-00/realtime-order-watch/actions/workflows/production.yml/dispatches' \
+      --header 'Accept: application/vnd.github+json' \
+      --header 'Authorization: Bearer ${local.github_token}' \
+      --header 'X-GitHub-Api-Version: 2022-11-28' \
+      --header 'Content-Type: application/json' \
+      --data '{
+          "ref":"main",
+          "inputs":{
+            "AZURE_CLIENT_ID":"${module.github_actions_identity.user_assigned_identity_client_id}", 
+            "AZURE_TENANT_ID":"${data.azurerm_subscription.current.tenant_id}", 
+            "AZURE_SUBSCRIPTION_ID": "${data.azurerm_subscription.current.subscription_id}",  
+            "AKS_RESOURCE_GROUP": "${local.aks_resource_group_name}",
+            "AKS_CLUSTER_NAME": "${module.aks_cluster.aks_cluster_name}",
+            "ACR_REGISTRY":"${module.aks_container_registry.acr_login_server}",
+            "ACR_REPOSITORY": "realtime-order-watch-images", 
+            "REPLICAS": "1"
+          }
+        }' 
+    EOT
+  }
+}
 
 
 data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
@@ -331,50 +331,74 @@ data "azurerm_user_assigned_identity" "existing_user_assigned_identity" {
 ### NEXT STAGE 
 
 #### MONITORING STACK 
+
+module "user_assigned_identity_thanos" {
+  count = local.deployment_stage == 1 ? 1 : 0
+  source = "../../core/modules/aks/identity/user_assigned_identity"
+
+  name                = "thanos"
+  resource_group_name = local.aks_resource_group_name
+  aks_location        = local.aks_location
+
+}
+
+module "thanos_role_assignment_storage_blob_data" { 
+  count = local.deployment_stage == 1 ? 1 : 0
+  source = "../../core/modules/aks/identity/roles/role_assignment"
+
+  scope_id             = module.thanos_storage_account[0].storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.user_assigned_identity_thanos[0].user_assigned_identity_principal_id
+}
+
+
+
 module "thanos_storage_account" {
-  count               = local.deployment_stage == 1 ? 1 : 0
-  source                        = "../../core/modules/aks/storage/storage_account"
-  storage_account_name          = "${lower(local.company_name)}${local.environment}thanos"
-  resource_group_name           = local.aks_resource_group_name
-  location                      = local.aks_location
-  account_tier                  = "Standard"
-  account_replication_type      = "LRS"
-  
+  count                    = local.deployment_stage == 1 ? 1 : 0
+  source                   = "../../core/modules/aks/storage/storage_account"
+  storage_account_name     = "${lower(local.company_name)}${local.environment}thanos"
+  resource_group_name      = local.aks_resource_group_name
+  location                 = local.aks_location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
   # Set to private mode with security settings
   access_mode                   = "private"
   public_network_access_enabled = false
-  default_action               = "Deny"
+  default_action                = "Deny"
   virtual_network_subnet_ids    = module.vnet.private_subnet_ids
-  bypass                       = ["AzureServices"]
+  bypass                        = ["AzureServices"]
 }
 
 module "thanos_storage_container" {
-  count               = local.deployment_stage == 1 ? 1 : 0
-  source                  = "../../core/modules/aks/storage/storage_container"
-  storage_account_id      = module.thanos_storage_account[0].storage_account_id
-  container_name          = "thanosfiles"
+  count              = local.deployment_stage == 1 ? 1 : 0
+  source             = "../../core/modules/aks/storage/storage_container"
+  storage_account_id = module.thanos_storage_account[0].storage_account_id
+  container_name     = "thanosfiles"
 }
 
 module "thanos" {
-  count               = local.deployment_stage == 1 ? 1 : 0
-  source                 = "../../core/modules/aks/monitoring/thanos"
-  kubernetes_namespace   = "monitoring"
-  
+  count                = local.deployment_stage == 1 ? 1 : 0
+  source               = "../../core/modules/aks/monitoring/thanos"
+  kubernetes_namespace = "monitoring"
+
   storage_account_name   = module.thanos_storage_account[0].storage_account_name
   storage_container_name = module.thanos_storage_container[0].storage_container_name
-  storage_account_key    = module.thanos_storage_account[0].primary_access_key
+  # storage_account_key    = module.thanos_storage_account[0].primary_access_key # Commented out/removed to use Workload Identity
+
+  azure_workload_identity_client_id = module.user_assigned_identity_thanos[0].user_assigned_identity_client_id
 
   # Customize components as needed (examples)
-  query_replicas         = 1
-  storegateway_replicas  = 1
-  compactor_enabled      = true
+  query_replicas          = 1
+  storegateway_replicas   = 1
+  compactor_enabled       = true
   compactor_retention_raw = "60d"
 
   additional_labels = {
     environment = local.environment
-    cluster     = local.aks_cluster_name 
+    cluster     = local.aks_cluster_name
   }
-  
+
   resources = { # Override default resources if needed
     query = {
       requests = { cpu = "500m", memory = "1Gi" }
@@ -393,6 +417,7 @@ module "thanos" {
   depends_on = [
     module.thanos_storage_account,
     module.thanos_storage_container,
-    module.aks_cluster
+    module.aks_cluster,
+    module.thanos_role_assignment_storage_blob_data
   ]
 }
